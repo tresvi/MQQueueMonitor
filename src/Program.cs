@@ -41,19 +41,19 @@ namespace MQQueueMonitordotnet
                 return;
             }
 
-            var properties = new Hashtable
-            {
-                { MQC.HOST_NAME_PROPERTY, mqConnection.Ip },
-                { MQC.PORT_PROPERTY, mqConnection.Port },
-                { MQC.CHANNEL_PROPERTY, mqConnection.Channel }
-            };
-
             if (options.RefreshInterval < CliParameters.MIN_REFRESH_INTERVAL_MS)
             {
                 Console.Error.WriteLine($"Error: refreshInterval debe ser mayor o igual que {CliParameters.MIN_REFRESH_INTERVAL_MS}. Valor recibido: {options.RefreshInterval}");
                 Environment.Exit(1);
                 return;
             }
+
+            var properties = new Hashtable
+            {
+                { MQC.HOST_NAME_PROPERTY, mqConnection.Ip },
+                { MQC.PORT_PROPERTY, mqConnection.Port },
+                { MQC.CHANNEL_PROPERTY, mqConnection.Channel }
+            };
 
             MQQueueManager queueMgr = null;
             Dictionary<string, MQQueue> openQueues = new();
