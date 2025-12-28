@@ -1,12 +1,13 @@
 ﻿using IBM.WMQ;
 using MQQueueMonitor.Models;
+using MQQueueMonitor.ConsoleComponents;
 using System.Collections;
 using Tresvi.CommandParser;
 using Tresvi.CommandParser.Exceptions;
 using Spectre.Console;
 
 
-namespace MQQueueMonitor
+namespace MQQueueMonitordotnet
 {
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "10.6.248.10;1514;CHANNEL1;MQGQ" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
@@ -136,28 +137,17 @@ namespace MQQueueMonitor
 
         private static Rows CreateQueueDisplay(Dictionary<string, QueueStatistics> queueStats)
         {
-            var panels = new List<Panel>();
+            List<Panel> panels = new();
+            ConsoleHProgressBar2 progressBar = new(40, 63, 88, true);
             
             foreach (var kvp in queueStats)
             {
                 string queueName = kvp.Key;
                 QueueStatistics stats = kvp.Value;
                 
-                // Calcular porcentaje para la barra de progreso
-                double percentage = stats.MaxDepth > 0 
-                    ? Math.Min(100.0, (double)stats.CurrentDepth / stats.MaxDepth * 100.0) 
-                    : 0.0;
+                string progressBarText = progressBar.GenerateMarkup(stats.CurrentDepth, stats.MaxDepth);
+                string barColor = progressBar.GetBarColor(stats.CurrentDepth, stats.MaxDepth);
 
-                // Determinar color de la barra según umbrales (63% amarillo, 88% rojo)
-                string barColor = percentage < 63 ? "green" : (percentage < 88 ? "yellow" : "red");
-
-                // Crear barra de progreso como texto
-                int barLength = 40;
-                int filledChars = (int)Math.Round(percentage / 100.0 * barLength);
-                filledChars = Math.Min(filledChars, barLength);
-                string progressBar = $"[{barColor}]{new string('█', filledChars)}[/][dim]{new string('░', barLength - filledChars)}[/]";
-
-                // Crear contenido del panel
                 var panelContent = new Table()
                     .HideHeaders()
                     .NoBorder()
@@ -180,11 +170,8 @@ namespace MQQueueMonitor
                 string rateColor = stats.RatePerSecond >= 0 ? "green" : "red";
                 panelContent.AddRow("[bold]Velocidad [[msjes/seg]]:[/]", $"[{rateColor}]{stats.RatePerSecond:F2}[/]");
                 
-                // Agregar barra de progreso
-                panelContent.AddRow("[bold]Progreso:[/]", progressBar);
-                panelContent.AddRow("", $"[dim]{percentage:F1}%[/]");
+                panelContent.AddRow("[bold]Progreso:[/]", progressBarText);
 
-                // Crear panel con título
                 Color borderColor = barColor == "green" ? Color.Green : (barColor == "yellow" ? Color.Yellow : Color.Red);
                 var panel = new Panel(panelContent)
                 {
