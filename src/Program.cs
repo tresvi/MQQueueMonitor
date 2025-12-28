@@ -8,7 +8,8 @@ using Tresvi.CommandParser.Exceptions;
 
 namespace MQQueueMonitor
 {
-    //dotnet run -- -m "10.6.248.10:1414:CHANNEL1:MQGD" -q "BNA.CU2.PEDIDO,BNA.CU2.RESPUESTA"
+    //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
+    //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     internal class Program
     {
         private const int MIN_REFRESH_INTERVAL = 25;
@@ -21,7 +22,7 @@ namespace MQQueueMonitor
 
             try
             {
-                object verb = Tresvi.CommandParser.CommandLine.Parse(args, typeof(CliParameters));
+                object verb = CommandLine.Parse(args, typeof(CliParameters));
                 options = (CliParameters)verb;
                 mqConnection.Load(options.MqConnection);
                 queues = MQConnection.ParseQueues(options.QueuesNames);

@@ -26,7 +26,7 @@ public class MQConnection
         if (string.IsNullOrWhiteSpace(mqConnectionString))
             throw new ArgumentException("El parámetro mqConnection no puede estar vacío.");
 
-        string[] partes = mqConnectionString.Split(':');
+        string[] partes = mqConnectionString.Split(';');
         
         if (partes.Length != 4)
         {
@@ -75,7 +75,7 @@ public class MQConnection
         if (string.IsNullOrWhiteSpace(queuesString))
             throw new ArgumentException("El parámetro queues no puede estar vacío.");
 
-        string[] queues = queuesString.Split(',');
+        string[] queues = queuesString.Split(';');
         List<string> result = [];
 
         foreach (string queue in queues)
