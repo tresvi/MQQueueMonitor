@@ -87,7 +87,7 @@ namespace MQQueueMonitor
                     linePositions[$"{queueName}_Max"] = Console.CursorTop;
                     Console.WriteLine($"Registro máx: 0 (00:00:00.00)");
                     linePositions[$"{queueName}_Rate"] = Console.CursorTop;
-                    Console.WriteLine($"Velocidad: 0.00 msjes/seg");
+                    Console.WriteLine($"Velocidad [msjes/seg]: 0.00");
                     linePositions[$"{queueName}_ProgressBar"] = Console.CursorTop;
                     Console.WriteLine("[                                        ]");
                     Console.WriteLine();
@@ -124,7 +124,12 @@ namespace MQQueueMonitor
                         else
                             ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Max"], $"Registro máx: {stats.MaxDepthRecorded} ({stats.MaxDepthTimestamp:HH:mm:ss.ff})");
                         
-                        ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Rate"], $"Velocidad: {stats.RatePerSecond:F2} msjes/seg");
+                        // Mostrar velocidad con color solo en el valor (verde para >= 0, rojo para negativo)
+                        string rateLabel = "Velocidad [msjes/seg]: ";
+                        string rateValue = $"{stats.RatePerSecond:F2}";
+                        string rateUnit = "";
+                        ConsoleColor rateColor = stats.RatePerSecond >= 0 ? ConsoleColor.Green : ConsoleColor.Red;
+                        ReportHelper.UpdateReportLineWithPartialColor(linePositions[$"{queueName}_Rate"], rateLabel, rateValue, rateUnit, rateColor);
                         
                         progressBar.Update(linePositions[$"{queueName}_ProgressBar"], stats.CurrentDepth, stats.MaxDepth);
                     }

@@ -12,6 +12,10 @@ internal class QueueStatistics
     public DateTime MinDepthTimestamp { get; private set; }
     public int MaxDepthRecorded { get; private set; } = int.MinValue;
     public DateTime MaxDepthTimestamp { get; private set; }
+    public int SaturationCount { get; private set; }
+    
+    // Campo privado para detectar transiciones a saturación
+    private bool _wasAtMaxDepth = false;
     
     // Campos privados para calcular la velocidad de cambio
     private int _previousDepth = 0;
@@ -70,6 +74,17 @@ internal class QueueStatistics
         {
             MaxDepthRecorded = currentDepth;
             MaxDepthTimestamp = currentTime;
+        }
+
+        // Detectar saturación: pasar de un valor menor a la profundidad máxima a la profundidad máxima
+        if (currentDepth >= MaxDepth && !_wasAtMaxDepth)
+        {
+            SaturationCount++;
+            _wasAtMaxDepth = true;
+        }
+        else if (currentDepth < MaxDepth)
+        {
+            _wasAtMaxDepth = false;
         }
     }
 
