@@ -1,9 +1,9 @@
 ﻿using IBM.WMQ;
 using MQQueueMonitor.Models;
-using MQQueueMonitor.ConsoleComponents;
 using System.Collections;
 using Tresvi.CommandParser;
 using Tresvi.CommandParser.Exceptions;
+using Spectre.Console;
 
 
 namespace MQQueueMonitor
@@ -62,13 +62,7 @@ namespace MQQueueMonitor
 
                 // Inicializar estadísticas por cola y abrir colas para consulta (INQUIRE)
                 Dictionary<string, QueueStatistics> queueStats = [];
-                Dictionary<string, int> linePositions = []; 
                 
-                ConsoleHProgressBar progressBar = new(40, 63, 88, true);
-
-                Console.Clear();
-                Console.WriteLine("Presione Ctrl+C para terminar el proceso...\n");
-
                 int openOptions = MQC.MQOO_INQUIRE | MQC.MQOO_FAIL_IF_QUIESCING;
                 
                 foreach (string queueName in queues)
@@ -78,65 +72,31 @@ namespace MQQueueMonitor
                     
                     int maxDepth = queue.MaximumDepth;
                     queueStats[queueName] = new QueueStatistics(queueName, maxDepth);
-
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Cola {queueName} (Prof. Maxima: {maxDepth})");
-                    linePositions[$"{queueName}_Profundidad"] = Console.CursorTop;
-                    Console.WriteLine($"Profundidad: 0");
-                    linePositions[$"{queueName}_Min"] = Console.CursorTop;
-                    Console.WriteLine($"Registro mín: 0 (00:00:00.00)");
-                    linePositions[$"{queueName}_Max"] = Console.CursorTop;
-                    Console.WriteLine($"Registro máx: 0 (00:00:00.00)");
-                    linePositions[$"{queueName}_Rate"] = Console.CursorTop;
-                    Console.WriteLine($"Velocidad [msjes/seg]: 0.00");
-                    linePositions[$"{queueName}_ProgressBar"] = Console.CursorTop;
-                    Console.WriteLine("[                                        ]");
-                    Console.WriteLine();
-                    Console.WriteLine();
-                    Console.ResetColor();
                 }
 
-                Console.CursorVisible = false;
-                Console.CancelKeyPress += (sender, e) =>
-                {
-                    Console.CursorVisible = true;
-                    e.Cancel = false; // Permitir que el programa termine normalmente
-                };
+                AnsiConsole.Clear();
+                AnsiConsole.MarkupLine("[yellow]Presione Ctrl+C para terminar el proceso...[/]\n");
 
-                while (true)
-                {
-                    foreach (string queueName in queues)
+                // Usar Live display de Spectre.Console para actualizar en tiempo real
+                AnsiConsole.Live(CreateQueueDisplay(queueStats))
+                    .AutoClear(false)
+                    .Overflow(VerticalOverflow.Ellipsis)
+                    .Start(ctx =>
                     {
-                        MQQueue queue = openQueues[queueName];
-                        int depth = queue.CurrentDepth;
-                        QueueStatistics stats = queueStats[queueName];
-                        stats.Update(depth);
+                        while (true)
+                        {
+                            foreach (string queueName in queues)
+                            {
+                                MQQueue queue = openQueues[queueName];
+                                int depth = queue.CurrentDepth;
+                                QueueStatistics stats = queueStats[queueName];
+                                stats.Update(depth);
+                            }
 
-                        // Actualizar solo los valores en pantalla
-                        ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Profundidad"], $"Profundidad: {stats.CurrentDepth}");
-                        
-                        if (!stats.HasMinDepth)
-                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Min"], "Registro mín: N/A");
-                        else
-                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Min"], $"Registro mín: {stats.MinDepth} ({stats.MinDepthTimestamp:HH:mm:ss.ff})");
-                        
-                        if (!stats.HasMaxDepthRecorded)
-                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Max"], "Registro máx: N/A");
-                        else
-                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Max"], $"Registro máx: {stats.MaxDepthRecorded} ({stats.MaxDepthTimestamp:HH:mm:ss.ff})");
-                        
-                        // Mostrar velocidad con color solo en el valor (verde para >= 0, rojo para negativo)
-                        string rateLabel = "Velocidad [msjes/seg]: ";
-                        string rateValue = $"{stats.RatePerSecond:F2}";
-                        string rateUnit = "";
-                        ConsoleColor rateColor = stats.RatePerSecond >= 0 ? ConsoleColor.Green : ConsoleColor.Red;
-                        ReportHelper.UpdateReportLineWithPartialColor(linePositions[$"{queueName}_Rate"], rateLabel, rateValue, rateUnit, rateColor);
-                        
-                        progressBar.Update(linePositions[$"{queueName}_ProgressBar"], stats.CurrentDepth, stats.MaxDepth);
-                    }
-
-                    Thread.Sleep(options.RefreshInterval);
-                }
+                            ctx.UpdateTarget(CreateQueueDisplay(queueStats));
+                            Thread.Sleep(options.RefreshInterval);
+                        }
+                    });
             }
             catch (MQException ex)
             {
@@ -171,9 +131,72 @@ namespace MQQueueMonitor
                     Console.Error.WriteLine($"Error al desconectar Queue Manager: {ex.Message}");
                 }
                 
-                Console.CursorVisible = true;
             }
         }
 
+        private static Rows CreateQueueDisplay(Dictionary<string, QueueStatistics> queueStats)
+        {
+            var panels = new List<Panel>();
+            
+            foreach (var kvp in queueStats)
+            {
+                string queueName = kvp.Key;
+                QueueStatistics stats = kvp.Value;
+                
+                // Calcular porcentaje para la barra de progreso
+                double percentage = stats.MaxDepth > 0 
+                    ? Math.Min(100.0, (double)stats.CurrentDepth / stats.MaxDepth * 100.0) 
+                    : 0.0;
+
+                // Determinar color de la barra según umbrales (63% amarillo, 88% rojo)
+                string barColor = percentage < 63 ? "green" : (percentage < 88 ? "yellow" : "red");
+
+                // Crear barra de progreso como texto
+                int barLength = 40;
+                int filledChars = (int)Math.Round(percentage / 100.0 * barLength);
+                filledChars = Math.Min(filledChars, barLength);
+                string progressBar = $"[{barColor}]{new string('█', filledChars)}[/][dim]{new string('░', barLength - filledChars)}[/]";
+
+                // Crear contenido del panel
+                var panelContent = new Table()
+                    .HideHeaders()
+                    .NoBorder()
+                    .AddColumn(new TableColumn("").NoWrap())
+                    .AddColumn(new TableColumn("").NoWrap());
+
+                panelContent.AddRow("[bold]Profundidad:[/]", $"[bold]{stats.CurrentDepth}[/]");
+                
+                string minText = !stats.HasMinDepth 
+                    ? "[dim]N/A[/]" 
+                    : $"{stats.MinDepth} ([dim]{stats.MinDepthTimestamp:HH:mm:ss.ff}[/])";
+                panelContent.AddRow("[bold]Registro mín:[/]", minText);
+                
+                string maxText = !stats.HasMaxDepthRecorded 
+                    ? "[dim]N/A[/]" 
+                    : $"{stats.MaxDepthRecorded} ([dim]{stats.MaxDepthTimestamp:HH:mm:ss.ff}[/])";
+                panelContent.AddRow("[bold]Registro máx:[/]", maxText);
+                
+                // Velocidad con color según el signo
+                string rateColor = stats.RatePerSecond >= 0 ? "green" : "red";
+                panelContent.AddRow("[bold]Velocidad [[msjes/seg]]:[/]", $"[{rateColor}]{stats.RatePerSecond:F2}[/]");
+                
+                // Agregar barra de progreso
+                panelContent.AddRow("[bold]Progreso:[/]", progressBar);
+                panelContent.AddRow("", $"[dim]{percentage:F1}%[/]");
+
+                // Crear panel con título
+                Color borderColor = barColor == "green" ? Color.Green : (barColor == "yellow" ? Color.Yellow : Color.Red);
+                var panel = new Panel(panelContent)
+                {
+                    Header = new PanelHeader($"[bold green]Cola {queueName}[/] (Prof. Máxima: {stats.MaxDepth})"),
+                    Border = BoxBorder.Rounded
+                };
+                panel.BorderStyle = new Style(borderColor);
+
+                panels.Add(panel);
+            }
+            
+            return new Rows(panels);
+        }
     }
 }
