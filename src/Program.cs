@@ -12,6 +12,7 @@ namespace MQQueueMonitordotnet
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "10.6.248.10;1514;CHANNEL1;MQGQ" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
+    //TODO: Asegurarse que cuando se cierre la aplicacion con Ctrl+C, se cierren las conexiones corecamente.
     internal class Program
     {
         static void Main(string[] args)
@@ -59,6 +60,7 @@ namespace MQQueueMonitordotnet
             
             try
             {
+                AnsiConsole.MarkupLine($"[yellow]Conectandose a manager {options.MqConnection}...[/]\n");
                 queueMgr = new MQQueueManager(mqConnection.ManagerName, properties);
 
                 // Inicializar estadísticas por cola y abrir colas para consulta (INQUIRE)
@@ -76,7 +78,8 @@ namespace MQQueueMonitordotnet
                 }
 
                 AnsiConsole.Clear();
-                AnsiConsole.MarkupLine("[yellow]Presione Ctrl+C para terminar el proceso...[/]\n");
+                AnsiConsole.MarkupLine("[yellow]Presione Ctrl+C para terminar el proceso...[/]");
+                AnsiConsole.MarkupLine($"[yellow]Conectado a manager {options.MqConnection}[/]\n");
 
                 // Usar Live display de Spectre.Console para actualizar en tiempo real
                 AnsiConsole.Live(CreateQueueDisplay(queueStats))
@@ -135,6 +138,7 @@ namespace MQQueueMonitordotnet
             }
         }
 
+
         private static Rows CreateQueueDisplay(Dictionary<string, QueueStatistics> queueStats)
         {
             List<Panel> panels = new();
@@ -170,7 +174,7 @@ namespace MQQueueMonitordotnet
                 string rateColor = stats.RatePerSecond >= 0 ? "green" : "red";
                 panelContent.AddRow("[bold]Velocidad [[msjes/seg]]:[/]", $"[{rateColor}]{stats.RatePerSecond:F2}[/]");
                 
-                panelContent.AddRow("[bold]Progreso:[/]", progressBarText);
+                panelContent.AddRow("[bold]Uso de cola:[/]", progressBarText);
 
                 Color borderColor = barColor == "green" ? Color.Green : (barColor == "yellow" ? Color.Yellow : Color.Red);
                 var panel = new Panel(panelContent)
