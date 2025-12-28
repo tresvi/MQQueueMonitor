@@ -9,6 +9,7 @@ using Tresvi.CommandParser.Exceptions;
 namespace MQQueueMonitor
 {
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
+    //dotnet run -- -m "10.6.248.10;1514;CHANNEL1;MQGQ" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     internal class Program
     {
