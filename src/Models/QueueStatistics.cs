@@ -12,10 +12,14 @@ internal class QueueStatistics
     public DateTime MinDepthTimestamp { get; private set; }
     public int MaxDepthRecorded { get; private set; } = int.MinValue;
     public DateTime MaxDepthTimestamp { get; private set; }
-    public int SaturationCount { get; private set; }
     
-    // Campo privado para detectar transiciones a saturación
-    private bool _wasAtMaxDepth = false;
+    // Campos privados para calcular la velocidad de cambio
+    private int _previousDepth = 0;
+    private DateTime _previousTimestamp;
+    private bool _hasPreviousMeasurement = false;
+    
+    // Propiedad pública para la velocidad de cambio por segundo
+    public double RatePerSecond { get; private set; } = 0.0;
 
     public QueueStatistics(string queueName, int maxDepth)
     {
@@ -32,6 +36,30 @@ internal class QueueStatistics
         DateTime currentTime = DateTime.Now;
         CurrentDepth = currentDepth;
 
+        // Calcular velocidad de cambio por segundo
+        if (_hasPreviousMeasurement)
+        {
+            double timeDifferenceSeconds = (currentTime - _previousTimestamp).TotalSeconds;
+            if (timeDifferenceSeconds > 0)
+            {
+                int depthChange = currentDepth - _previousDepth;
+                RatePerSecond = depthChange / timeDifferenceSeconds;
+            }
+            else
+            {
+                RatePerSecond = 0.0;
+            }
+        }
+        else
+        {
+            RatePerSecond = 0.0;
+        }
+
+        // Actualizar valores previos para el próximo cálculo
+        _previousDepth = currentDepth;
+        _previousTimestamp = currentTime;
+        _hasPreviousMeasurement = true;
+
         if (currentDepth < MinDepth)
         {
             MinDepth = currentDepth;
@@ -42,17 +70,6 @@ internal class QueueStatistics
         {
             MaxDepthRecorded = currentDepth;
             MaxDepthTimestamp = currentTime;
-        }
-
-        // Detectar saturación: pasar de un valor menor a la profundidad máxima a la profundidad máxima
-        if (currentDepth >= MaxDepth && !_wasAtMaxDepth)
-        {
-            SaturationCount++;
-            _wasAtMaxDepth = true;
-        }
-        else if (currentDepth < MaxDepth)
-        {
-            _wasAtMaxDepth = false;
         }
     }
 

@@ -12,8 +12,6 @@ namespace MQQueueMonitor
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     internal class Program
     {
-        private const int MIN_REFRESH_INTERVAL = 25;
-
         static void Main(string[] args)
         {
             CliParameters options;
@@ -47,9 +45,9 @@ namespace MQQueueMonitor
                 { MQC.CHANNEL_PROPERTY, mqConnection.Channel }
             };
 
-            if (options.RefreshInterval < MIN_REFRESH_INTERVAL)
+            if (options.RefreshInterval < CliParameters.MIN_REFRESH_INTERVAL_MS)
             {
-                Console.Error.WriteLine($"Error: refreshInterval debe ser mayor o igual que {MIN_REFRESH_INTERVAL}. Valor recibido: {options.RefreshInterval}");
+                Console.Error.WriteLine($"Error: refreshInterval debe ser mayor o igual que {CliParameters.MIN_REFRESH_INTERVAL_MS}. Valor recibido: {options.RefreshInterval}");
                 Environment.Exit(1);
                 return;
             }
@@ -88,8 +86,8 @@ namespace MQQueueMonitor
                     Console.WriteLine($"Registro mín: 0 (00:00:00.00)");
                     linePositions[$"{queueName}_Max"] = Console.CursorTop;
                     Console.WriteLine($"Registro máx: 0 (00:00:00.00)");
-                    linePositions[$"{queueName}_Saturation"] = Console.CursorTop;
-                    Console.WriteLine($"Veces que saturó: 0");
+                    linePositions[$"{queueName}_Rate"] = Console.CursorTop;
+                    Console.WriteLine($"Velocidad: 0.00 msjes/seg");
                     linePositions[$"{queueName}_ProgressBar"] = Console.CursorTop;
                     Console.WriteLine("[                                        ]");
                     Console.WriteLine();
@@ -114,19 +112,20 @@ namespace MQQueueMonitor
                         stats.Update(depth);
 
                         // Actualizar solo los valores en pantalla
-                        UpdateReportLine(linePositions[$"{queueName}_Profundidad"], $"Profundidad: {stats.CurrentDepth}");
+                        ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Profundidad"], $"Profundidad: {stats.CurrentDepth}");
                         
                         if (!stats.HasMinDepth)
-                            UpdateReportLine(linePositions[$"{queueName}_Min"], "Registro mín: N/A");
+                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Min"], "Registro mín: N/A");
                         else
-                            UpdateReportLine(linePositions[$"{queueName}_Min"], $"Registro mín: {stats.MinDepth} ({stats.MinDepthTimestamp:HH:mm:ss.ff})");
+                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Min"], $"Registro mín: {stats.MinDepth} ({stats.MinDepthTimestamp:HH:mm:ss.ff})");
                         
                         if (!stats.HasMaxDepthRecorded)
-                            UpdateReportLine(linePositions[$"{queueName}_Max"], "Registro máx: N/A");
+                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Max"], "Registro máx: N/A");
                         else
-                            UpdateReportLine(linePositions[$"{queueName}_Max"], $"Registro máx: {stats.MaxDepthRecorded} ({stats.MaxDepthTimestamp:HH:mm:ss.ff})");
+                            ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Max"], $"Registro máx: {stats.MaxDepthRecorded} ({stats.MaxDepthTimestamp:HH:mm:ss.ff})");
                         
-                        UpdateReportLine(linePositions[$"{queueName}_Saturation"], $"Veces que saturó: {stats.SaturationCount}");
+                        ReportHelper.UpdateReportLine(linePositions[$"{queueName}_Rate"], $"Velocidad: {stats.RatePerSecond:F2} msjes/seg");
+                        
                         progressBar.Update(linePositions[$"{queueName}_ProgressBar"], stats.CurrentDepth, stats.MaxDepth);
                     }
 
@@ -168,28 +167,7 @@ namespace MQQueueMonitor
                 
                 Console.CursorVisible = true;
             }
-
         }
 
-
-        /// <summary>
-        /// Actualiza una línea específica del informe sin borrar el resto
-        /// </summary>
-        /// <param name="line">Número de línea a actualizar</param>
-        /// <param name="text">Texto a mostrar</param>
-        static void UpdateReportLine(int line, string text)
-        {
-            int currentTop = Console.CursorTop;
-            int currentLeft = Console.CursorLeft;
-            ConsoleColor originalColor = Console.ForegroundColor;
-
-            // Mantener el cursor oculto (ya está oculto desde el inicio)
-            Console.SetCursorPosition(0, line);
-            Console.ForegroundColor = ConsoleColor.White; // Color blanco por defecto
-            Console.Write(text.PadRight(Console.WindowWidth - 1)); // Limpiar el resto de la línea
-            Console.ForegroundColor = originalColor;
-
-            Console.SetCursorPosition(currentLeft, currentTop);
-        }
     }
 }
