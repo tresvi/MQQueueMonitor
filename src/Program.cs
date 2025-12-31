@@ -124,8 +124,7 @@ namespace MQQueueMonitordotnet
             }
             finally
             {
-                // Restaurar la visibilidad del cursor. Puede fallar si la consola ya esta cerrada
-                try { Console.CursorVisible = true; }
+                try { AnsiConsole.Reset(); }
                 catch { }
                 
                 // Cerrar todas las colas abiertas
