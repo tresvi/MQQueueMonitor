@@ -30,12 +30,14 @@ namespace MQQueueMonitordotnet
             }
             catch (CommandParserBaseException ex)
             {
+                Console.CursorVisible = true;
                 Console.Error.WriteLine($"Error al parsear los argumentos: {ex.Message}");
                 Environment.Exit(1);
                 return;
             }
             catch (ArgumentException ex)
             {
+                Console.CursorVisible = true;
                 Console.Error.WriteLine($"Error en parametros Coneccion MQ: {ex.Message}");
                 Environment.Exit(1);
                 return;
@@ -43,6 +45,7 @@ namespace MQQueueMonitordotnet
 
             if (options.RefreshInterval < CliParameters.MIN_REFRESH_INTERVAL_MS)
             {
+                Console.CursorVisible = true;
                 Console.Error.WriteLine($"Error: refreshInterval debe ser mayor o igual que {CliParameters.MIN_REFRESH_INTERVAL_MS}. Valor recibido: {options.RefreshInterval}");
                 Environment.Exit(1);
                 return;
@@ -57,6 +60,14 @@ namespace MQQueueMonitordotnet
 
             MQQueueManager queueMgr = null;
             Dictionary<string, MQQueue> openQueues = new();
+            
+            // Configurar manejador para Ctrl+C para restaurar el cursor
+            ConsoleCancelEventHandler cancelHandler = (sender, e) =>
+            {
+                Console.CursorVisible = true;
+                e.Cancel = false; // Permitir la terminación normal
+            };
+            Console.CancelKeyPress += cancelHandler;
             
             try
             {
@@ -113,6 +124,10 @@ namespace MQQueueMonitordotnet
             }
             finally
             {
+                // Restaurar la visibilidad del cursor. Puede fallar si la consola ya esta cerrada
+                try { Console.CursorVisible = true; }
+                catch { }
+                
                 // Cerrar todas las colas abiertas
                 foreach (var queue in openQueues.Values)
                 {
