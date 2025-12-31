@@ -7,7 +7,7 @@ public class CliParameters
 {
     public const int MIN_REFRESH_INTERVAL_MS = 50;
 
-    [Option("mqConnection", 'm', true, "Cadena que representa los parametros de conexion al servidor MQ conla siguiente estructura: MQServerIp;Port;Channel;ManagerName. Ej: 192.168.0.31:1414:CHANNEL1:MQGD ")]
+    [Option("mqConnection", 'm', true, "Cadena que representa los parametros de conexion al servidor MQ conla siguiente estructura: MQServerIp;Port;Channel;ManagerName. Ej: 192.168.0.31;1414;CHANNEL1;MQGD ")]
     public string MqConnection { get; set; } = "";
 
     [Option("queues", 'q', true, "Nombre de la/las colas MQ a monitorear. Pueden colocarse hasta 2 colas si se separan los nombres por punto y coma. Ej: 'BNA.CU1.PEDIDO;BNA.CU1.RESPUESTA'")]
