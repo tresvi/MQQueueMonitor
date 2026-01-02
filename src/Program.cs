@@ -7,7 +7,7 @@ using Tresvi.CommandParser.Exceptions;
 using Spectre.Console;
 
 
-namespace MQQueueMonitordotnet
+namespace MQQueueMonitor
 {
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "10.6.248.10;1514;CHANNEL1;MQGQ" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
