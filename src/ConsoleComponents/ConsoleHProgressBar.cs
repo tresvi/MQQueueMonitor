@@ -31,12 +31,19 @@ internal class ConsoleHProgressBar
     public string PercentageFormat { get; set; } = "F1";
 
     /// <summary>
+    /// Valor máximo para calcular el porcentaje de la barra de progreso
+    /// </summary>
+    public int MaxValue { get; set; }
+
+    /// <summary>
     /// Constructor de la barra de progreso
     /// </summary>
     /// <param name="barLength">Longitud de la barra en caracteres (dentro de los corchetes)</param>
     /// <param name="yellowThreshold">Porcentaje a partir del cual se mostrará la zona amarilla (0-100)</param>
     /// <param name="redThreshold">Porcentaje a partir del cual se mostrará la zona roja (0-100)</param>
-    public ConsoleHProgressBar(int barLength, double yellowThreshold, double redThreshold, bool showPercentage)
+    /// <param name="maxValue">Valor máximo para calcular el porcentaje de la barra</param>
+    /// <param name="showPercentage">Indica si se debe mostrar el porcentaje al costado de la barra</param>
+    public ConsoleHProgressBar(int barLength, double yellowThreshold, double redThreshold, int maxValue, bool showPercentage)
     {
         if (barLength <= 0)
             throw new ArgumentException("La longitud de la barra debe ser mayor que 0.", nameof(barLength));
@@ -50,20 +57,24 @@ internal class ConsoleHProgressBar
         if (yellowThreshold >= redThreshold)
             throw new ArgumentException("El umbral amarillo debe ser menor que el umbral rojo.");
 
+        if (maxValue <= 0)
+            throw new ArgumentException("El valor máximo debe ser mayor que 0.", nameof(maxValue));
+
         BarLength = barLength;
         YellowThreshold = yellowThreshold;
         RedThreshold = redThreshold;
+        MaxValue = maxValue;
         ShowPercentage = showPercentage;
     }
 
-    public void Update(int line, int currentValue, int maxValue)
+    public void Update(int line, int currentValue)
     {
         int currentTop = Console.CursorTop;
         int currentLeft = Console.CursorLeft;
         ConsoleColor originalColor = Console.ForegroundColor;
 
         // Calcular el porcentaje una sola vez
-        double percentage = maxValue > 0 ? Math.Min(100.0, (double)currentValue / maxValue * 100.0) : 0.0;
+        double percentage = MaxValue > 0 ? Math.Min(100.0, (double)currentValue / MaxValue * 100.0) : 0.0;
 
         // Mantener el cursor oculto (ya está oculto desde el inicio)
         Console.SetCursorPosition(0, line);
@@ -72,7 +83,7 @@ internal class ConsoleHProgressBar
         Console.ForegroundColor = ConsoleColor.White;
         Console.Write("[");
 
-        if (maxValue <= 0)
+        if (MaxValue <= 0)
         {
             // Si no hay valor máximo, mostrar barra vacía
             Console.Write(new string(' ', BarLength));
