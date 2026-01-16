@@ -5,25 +5,22 @@ internal class QueueStatistics
 {
     public string QueueName { get; private set; }
     public int MaxDepth { get; private set; }
-    
-    // Propiedades de solo lectura que se calculan internamente
     public int CurrentDepth { get; private set; }
     public int MinDepth { get; private set; } = int.MaxValue;
     public DateTime MinDepthTimestamp { get; private set; }
     public int MaxDepthRecorded { get; private set; } = int.MinValue;
     public DateTime MaxDepthTimestamp { get; private set; }
     public int SaturationCount { get; private set; }
+    public double RatePerSecond { get; private set; } = 0.0;
     
-    // Campo privado para detectar transiciones a saturación
-    private bool _wasAtMaxDepth = false;
-    
-    // Campos privados para calcular la velocidad de cambio
+#region Campos privados para calcular la velocidad de cambio
     private int _previousDepth = 0;
     private DateTime _previousTimestamp;
     private bool _hasPreviousMeasurement = false;
-    
-    // Propiedad pública para la velocidad de cambio por segundo
-    public double RatePerSecond { get; private set; } = 0.0;
+#endregion
+
+    private bool _wasAtMaxDepth = false;
+
 
     public QueueStatistics(string queueName, int maxDepth)
     {

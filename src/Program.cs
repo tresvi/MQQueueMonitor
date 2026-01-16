@@ -10,7 +10,6 @@ using Spectre.Console;
 namespace MQQueueMonitor
 {
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
-    //dotnet run -- -m "10.6.248.10;1514;CHANNEL1;MQGQ" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //TODO: Asegurarse que cuando se cierre la aplicacion con Ctrl+C, se cierren las conexiones corecamente.
     internal class Program
@@ -38,7 +37,7 @@ namespace MQQueueMonitor
             catch (ArgumentException ex)
             {
                 Console.CursorVisible = true;
-                Console.Error.WriteLine($"Error en parametros Coneccion MQ: {ex.Message}");
+                Console.Error.WriteLine($"Error en parametros Conexion MQ: {ex.Message}");
                 Environment.Exit(1);
                 return;
             }
@@ -130,25 +129,12 @@ namespace MQQueueMonitor
                 // Cerrar todas las colas abiertas
                 foreach (var queue in openQueues.Values)
                 {
-                    try
-                    {
-                        queue?.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.Error.WriteLine($"Error al cerrar cola: {ex.Message}");
-                    }
+                    try { queue?.Close(); }
+                    catch (Exception ex) { Console.Error.WriteLine($"Error al cerrar cola: {ex.Message}"); }
                 }
                 
-                try
-                {
-                    queueMgr?.Disconnect();
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Error al desconectar Queue Manager: {ex.Message}");
-                }
-                
+                try { queueMgr?.Disconnect(); }
+                catch (Exception ex) { Console.Error.WriteLine($"Error al desconectar Queue Manager: {ex.Message}"); }
             }
         }
 
