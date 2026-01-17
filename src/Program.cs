@@ -12,21 +12,14 @@ namespace MQQueueMonitor
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //TODO: Asegurarse que cuando se cierre la aplicacion con Ctrl+C, se cierren las conexiones corecamente.
-    //TODO: Agregar numero de procesos que estan leyendo, GET y que estan escribiendo PUT (queue.OpenInputCount, queue.OpenOutputCount)
-    //TODO: Agregar estado de la cola: Si esta pausada o en estado de Quiescing
 
     internal class Program
     {
 
         static void Main(string[] args)
         {
-            // Configurar codificación UTF-8 para que los spinners Unicode se muestren correctamente
-            // Si falla (sistemas muy antiguos), se mantiene la codificación por defecto
-            try 
-            { 
-                Console.OutputEncoding = System.Text.Encoding.UTF8;
-                DisplayHelper.TryDisableQuickEdit();
-            }
+            //Se intenta deshabilitar el molesto "Quick Edit Mode", sin romper compatibilidad con Linux
+            try { DisplayHelper.TryDisableQuickEdit(); }
             catch { }
             
             CliParameters options;
