@@ -12,6 +12,10 @@ internal class QueueStatistics
     public DateTime MaxDepthTimestamp { get; private set; }
     public int SaturationCount { get; private set; }
     public double RatePerSecond { get; private set; } = 0.0;
+    public int OpenInputCount { get; private set; }
+    public int OpenOutputCount { get; private set; }
+    public bool? IsGetInhibited { get; private set; }
+    public bool? IsPutInhibited { get; private set; }
     
 #region Campos privados para calcular la velocidad de cambio
     private int _previousDepth = 0;
@@ -32,10 +36,19 @@ internal class QueueStatistics
     /// Actualiza las estadísticas con un nuevo valor de profundidad actual
     /// </summary>
     /// <param name="currentDepth">Profundidad actual de la cola</param>
-    public void Update(int currentDepth)
+    /// <param name="openInputCount">Número de procesos que están leyendo (GET) de la cola</param>
+    /// <param name="openOutputCount">Número de procesos que están escribiendo (PUT) en la cola</param>
+    /// <param name="isGetInhibited">Indica si las operaciones GET están inhibidas</param>
+    /// <param name="isPutInhibited">Indica si las operaciones PUT están inhibidas</param>
+    public void Update(int currentDepth, int openInputCount = 0, int openOutputCount = 0, 
+        bool? isGetInhibited = false, bool? isPutInhibited = false)
     {
         DateTime currentTime = DateTime.Now;
         CurrentDepth = currentDepth;
+        OpenInputCount = openInputCount;
+        OpenOutputCount = openOutputCount;
+        IsGetInhibited = isGetInhibited;
+        IsPutInhibited = isPutInhibited;
 
         // Calcular velocidad de cambio por segundo
         if (_hasPreviousMeasurement)

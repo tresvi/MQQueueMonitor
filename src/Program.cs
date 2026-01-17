@@ -12,10 +12,20 @@ namespace MQQueueMonitor
     //dotnet run -- -m "10.6.248.10;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //dotnet run -- -m "192.168.0.31;1414;CHANNEL1;MQGD" -q "BNA.CU2.PEDIDO;BNA.CU2.RESPUESTA"
     //TODO: Asegurarse que cuando se cierre la aplicacion con Ctrl+C, se cierren las conexiones corecamente.
+    //TODO: Agregar numero de procesos que estan leyendo, GET y que estan escribiendo PUT (queue.OpenInputCount, queue.OpenOutputCount)
+    //TODO: Agregar estado de la cola: Si esta pausada o en estado de Quiescing
+
     internal class Program
     {
+        private const int PROGRESS_BAR_SIZE = 40;
+
         static void Main(string[] args)
         {
+            // Configurar codificación UTF-8 para que los spinners Unicode se muestren correctamente
+            // Si falla (sistemas muy antiguos), se mantiene la codificación por defecto
+            try { Console.OutputEncoding = System.Text.Encoding.UTF8; }
+            catch { }
+            
             CliParameters options;
             MQConnection mqConnection = new();
             List<string> queues;
@@ -87,12 +97,23 @@ namespace MQQueueMonitor
                     queueStats[queueName] = new QueueStatistics(queueName, maxDepth);
                 }
 
+/*
+                // Energetic
+                AnsiConsole.Status()
+                    //.Spinner(Spinner.Known.BouncingBar)
+                    .Spinner(Spinner.Known.Clock)
+                    .SpinnerStyle(Style.Parse("yellow"))
+                    .Start("DDDDDD...", ctx =>
+                    {
+                        Thread.Sleep(2000);
+                    });
+*/
                 AnsiConsole.Clear();
                 AnsiConsole.MarkupLine("[yellow]Presione Ctrl+C para terminar el proceso...[/]");
                 AnsiConsole.MarkupLine($"[yellow]Conectado a manager {options.MqConnection}[/]\n");
 
                 // Usar Live display de Spectre.Console para actualizar en tiempo real
-                AnsiConsole.Live(CreateQueueDisplay(queueStats))
+                AnsiConsole.Live(DisplayHelper.DrawScreen(queueStats))
                     .AutoClear(false)
                     .Overflow(VerticalOverflow.Ellipsis)
                     .Start(ctx =>
@@ -103,11 +124,15 @@ namespace MQQueueMonitor
                             {
                                 MQQueue queue = openQueues[queueName];
                                 int depth = queue.CurrentDepth;
+                                int openInputCount = queue.OpenInputCount;
+                                int openOutputCount = queue.OpenOutputCount;
+                                (bool? isGetInhibited, bool? isPutInhibited) = GetInhibitionState(queue);
+
                                 QueueStatistics stats = queueStats[queueName];
-                                stats.Update(depth);
+                                stats.Update(depth, openInputCount, openOutputCount, isGetInhibited, isPutInhibited);
                             }
 
-                            ctx.UpdateTarget(CreateQueueDisplay(queueStats));
+                            ctx.UpdateTarget(DisplayHelper.DrawScreen(queueStats));
                             Thread.Sleep(options.RefreshInterval);
                         }
                     });
@@ -139,55 +164,27 @@ namespace MQQueueMonitor
         }
 
 
-        private static Rows CreateQueueDisplay(Dictionary<string, QueueStatistics> queueStats)
-        {
-            List<Panel> panels = new();
-            ConsoleHProgressBar2 progressBar = new(40, 63, 88, true);
-            
-            foreach (var kvp in queueStats)
+        private static (bool? isGetInhibited, bool? isPutInhibited) GetInhibitionState(MQQueue queue)
+        { 
+            int[] intAttrs = [MQC.MQIA_INHIBIT_PUT, MQC.MQIA_INHIBIT_GET];
+
+            try
             {
-                string queueName = kvp.Key;
-                QueueStatistics stats = kvp.Value;
-                
-                string progressBarText = progressBar.GenerateMarkup(stats.CurrentDepth, stats.MaxDepth);
-                string barColor = progressBar.GetBarColor(stats.CurrentDepth, stats.MaxDepth);
+                int[] intVals = new int[2];
+                queue.Inquire(intAttrs, intVals, null);
 
-                var panelContent = new Table()
-                    .HideHeaders()
-                    .NoBorder()
-                    .AddColumn(new TableColumn("").NoWrap())
-                    .AddColumn(new TableColumn("").NoWrap());
-
-                panelContent.AddRow("[bold]Profundidad:[/]", $"[bold]{stats.CurrentDepth}[/]");
-                
-                string minText = !stats.HasMinDepth 
-                    ? "[dim]N/A[/]" 
-                    : $"{stats.MinDepth} ([dim]{stats.MinDepthTimestamp:HH:mm:ss.ff}[/])";
-                panelContent.AddRow("[bold]Registro mín:[/]", minText);
-                
-                string maxText = !stats.HasMaxDepthRecorded 
-                    ? "[dim]N/A[/]" 
-                    : $"{stats.MaxDepthRecorded} ([dim]{stats.MaxDepthTimestamp:HH:mm:ss.ff}[/])";
-                panelContent.AddRow("[bold]Registro máx:[/]", maxText);
-                
-                // Velocidad con color según el signo
-                string rateColor = stats.RatePerSecond >= 0 ? "green" : "red";
-                panelContent.AddRow("[bold]Velocidad [[msjes/seg]]:[/]", $"[{rateColor}]{stats.RatePerSecond:F2}[/]");
-                
-                panelContent.AddRow("[bold]Uso de cola:[/]", progressBarText);
-
-                Color borderColor = barColor == "green" ? Color.Green : (barColor == "yellow" ? Color.Yellow : Color.Red);
-                var panel = new Panel(panelContent)
-                {
-                    Header = new PanelHeader($"[bold green]Cola {queueName}[/] (Prof. Máxima: {stats.MaxDepth})"),
-                    Border = BoxBorder.Rounded
-                };
-                panel.BorderStyle = new Style(borderColor);
-
-                panels.Add(panel);
+                bool? isPutInhibited = (intVals[0] == MQC.MQQA_PUT_INHIBITED);
+                bool? isGetInhibited = (intVals[1] == MQC.MQQA_GET_INHIBITED);
+                return (isGetInhibited, isPutInhibited);
             }
-            
-            return new Rows(panels);
+            catch (MQException)
+            {
+                // Si falla la consulta, mantener el valor anterior
+                return (null, null);
+            }
         }
+
+
+
     }
 }

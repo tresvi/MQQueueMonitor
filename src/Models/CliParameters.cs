@@ -13,7 +13,7 @@ public class CliParameters
     [Option("queues", 'q', true, "Nombre de la/las colas MQ a monitorear. Pueden colocarse hasta 2 colas si se separan los nombres por punto y coma. Ej: 'BNA.CU1.PEDIDO;BNA.CU1.RESPUESTA'")]
     public string QueuesNames { get; set; } = "";
 
-    [Option("refreshInterval", 'r', false, $"Tiempo de refresco en milisegundos. Valor por defecto 150, mínimo: 50")]
+    [Option("refreshInterval", 'r', false, $"Tiempo de refresco en milisegundos. Si no se especifica, el valor por defecto es 150. El mínimo: 50")]
     public int RefreshInterval { get; set; } = 150;
 }
 
