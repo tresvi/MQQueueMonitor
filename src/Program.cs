@@ -17,13 +17,16 @@ namespace MQQueueMonitor
 
     internal class Program
     {
-        private const int PROGRESS_BAR_SIZE = 40;
 
         static void Main(string[] args)
         {
             // Configurar codificación UTF-8 para que los spinners Unicode se muestren correctamente
             // Si falla (sistemas muy antiguos), se mantiene la codificación por defecto
-            try { Console.OutputEncoding = System.Text.Encoding.UTF8; }
+            try 
+            { 
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+                DisplayHelper.TryDisableQuickEdit();
+            }
             catch { }
             
             CliParameters options;
@@ -97,17 +100,6 @@ namespace MQQueueMonitor
                     queueStats[queueName] = new QueueStatistics(queueName, maxDepth);
                 }
 
-/*
-                // Energetic
-                AnsiConsole.Status()
-                    //.Spinner(Spinner.Known.BouncingBar)
-                    .Spinner(Spinner.Known.Clock)
-                    .SpinnerStyle(Style.Parse("yellow"))
-                    .Start("DDDDDD...", ctx =>
-                    {
-                        Thread.Sleep(2000);
-                    });
-*/
                 AnsiConsole.Clear();
                 AnsiConsole.MarkupLine("[yellow]Presione Ctrl+C para terminar el proceso...[/]");
                 AnsiConsole.MarkupLine($"[yellow]Conectado a manager {options.MqConnection}[/]\n");

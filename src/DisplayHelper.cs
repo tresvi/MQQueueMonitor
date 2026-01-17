@@ -2,10 +2,30 @@ using MQQueueMonitor.Models;
 using MQQueueMonitor.ConsoleComponents;
 using Spectre.Console;
 
+using System;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+
 namespace MQQueueMonitor;
 
 sealed internal class DisplayHelper
 {
+    const int STD_INPUT_HANDLE = -10;
+    const uint ENABLE_QUICK_EDIT_MODE = 0x0040;
+    const uint ENABLE_EXTENDED_FLAGS  = 0x0080;
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
     private const int PROGRESS_BAR_SIZE = 40;
 
     public static Rows DrawScreen(Dictionary<string, QueueStatistics> queueStats)
@@ -45,8 +65,8 @@ sealed internal class DisplayHelper
                 panelContent.AddRow("[bold]Consumidores:[/]", $"[bold]{stats.OpenInputCount}[/]");
                 panelContent.AddRow("[bold]Productores:[/]", $"[bold]{stats.OpenOutputCount}[/]");
 
-                string putStatus = stats.IsPutInhibited == true ? "[yellow]SI[/]" : "[WHITE]NO[/]";
-                string getStatus = stats.IsGetInhibited == true ? "[yellow]SI[/]" : "[WHITE]NO[/]";
+                string putStatus = GetFormatedBooleanText(stats.IsPutInhibited);
+                string getStatus = GetFormatedBooleanText(stats.IsGetInhibited);
                 panelContent.AddRow("[bold]Inhibida para PUT/GET:[/]", $"{putStatus}/{getStatus}");
                 panelContent.AddRow("[bold]Uso de cola:[/]", progressBarText);
 
@@ -73,6 +93,31 @@ sealed internal class DisplayHelper
                 return "[YELLOW]SI[/]";
             else
                 return "[WHITE]NO[/]";
+        }
+
+
+        public static void TryDisableQuickEdit()
+        {
+            if (!OperatingSystem.IsWindows())
+                return;
+
+            DisableQuickEditWindows();
+        }
+
+
+        private static void DisableQuickEditWindows()
+        {
+            if (!OperatingSystem.IsWindows()) return;
+
+            IntPtr handle = GetStdHandle(STD_INPUT_HANDLE);
+
+            if (!GetConsoleMode(handle, out uint mode))
+                return;
+
+            mode &= ~ENABLE_QUICK_EDIT_MODE;
+            mode |= ENABLE_EXTENDED_FLAGS;
+
+            SetConsoleMode(handle, mode);
         }
 }
 
