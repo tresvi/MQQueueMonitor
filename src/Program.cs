@@ -56,7 +56,7 @@ namespace MQQueueMonitor
                 return;
             }
 
-            var properties = new Hashtable
+            var mqProperties = new Hashtable
             {
                 { MQC.HOST_NAME_PROPERTY, mqConnection.Ip },
                 { MQC.PORT_PROPERTY, mqConnection.Port },
@@ -77,18 +77,18 @@ namespace MQQueueMonitor
             try
             {
                 AnsiConsole.MarkupLine($"[yellow]Conectandose a manager {options.MqConnection}...[/]\n");
-                queueMgr = new MQQueueManager(mqConnection.ManagerName, properties);
+                queueMgr = new MQQueueManager(mqConnection.ManagerName, mqProperties);
 
                 // Inicializar estadísticas por cola y abrir colas para consulta (INQUIRE)
                 Dictionary<string, QueueStatistics> queueStats = [];
-                
+
                 int openOptions = MQC.MQOO_INQUIRE | MQC.MQOO_FAIL_IF_QUIESCING;
-                
+
                 foreach (string queueName in queues)
                 {
                     MQQueue queue = queueMgr.AccessQueue(queueName, openOptions);
                     openQueues[queueName] = queue;
-                    
+
                     int maxDepth = queue.MaximumDepth;
                     queueStats[queueName] = new QueueStatistics(queueName, maxDepth);
                 }

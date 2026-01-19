@@ -14,6 +14,6 @@ public class CliParameters
     public string QueuesNames { get; set; } = "";
 
     [Option("refreshInterval", 'r', false, $"Tiempo de refresco en milisegundos. Si no se especifica, el valor por defecto es 150. El mínimo: 50")]
-    public int RefreshInterval { get; set; } = 150;
+    public int RefreshInterval { get; set; } = 200;
 }
 
