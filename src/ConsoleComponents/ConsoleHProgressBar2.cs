@@ -26,9 +26,9 @@ internal class ConsoleHProgressBar2
     public bool ShowPercentage { get; set; } = false;
 
     /// <summary>
-    /// Formato para mostrar el porcentaje (por defecto "F1" para 1 decimal)
+    /// Formato para mostrar el porcentaje (por defecto "F2" para 2 decimales)
     /// </summary>
-    public string PercentageFormat { get; set; } = "F1";
+    public string PercentageFormat { get; set; } = "F2";
 
     /// <summary>
     /// Constructor de la barra de progreso
